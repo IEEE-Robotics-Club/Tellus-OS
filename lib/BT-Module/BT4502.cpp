@@ -35,10 +35,12 @@ bool BTinit(){
     delay(2);
 
     wakeBT();
+    //Create a name with a random number appended
     char name[25];
     buildName(name);
     USB_SERIAL.println(name);
 
+    //Change the name of the Module to this name
     if(BT_SERIAL.availableForWrite()){
         for (int i = 0; i < sizeof(name)-1; i++){
             BT_SERIAL.write(name[i]);
@@ -48,9 +50,12 @@ bool BTinit(){
         }
     }
 
+    //Setting the name is a little slow. If we don't wait, we may not get
+    //The OKAY in 1 go, and will intermittently fail the setup check.
     delay(100);
-    int i = 0;
+
     // Write the incoming characters to the Buffer
+    int i = 0;
     while(BT_SERIAL.available()){
         BUFFER[i] = (char)BT_SERIAL.read();
         if(BUFFER[i]=='\0'){
@@ -58,13 +63,6 @@ bool BTinit(){
         }
         i++;
     }
-    delay(10);
-    i = 0;
-    while(BT_SERIAL.available()){
-        BUFFER[i] = (char)BT_SERIAL.read();
-        i++;
-    }
-    USB_SERIAL.println(BUFFER);
     return isOK(BUFFER);
 }
 
