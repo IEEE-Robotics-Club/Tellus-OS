@@ -1,3 +1,4 @@
+#include <Arduino.h>
 float readLightSensor() {                                     // reads the light sensor and returns a float(0-100) represents light exposure percentage
   const int pin = A6;                                         // Testing on an arduino I used pin A0, needs to change to A6 for teensy
 

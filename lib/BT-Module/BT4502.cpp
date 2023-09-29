@@ -1,25 +1,29 @@
 #include <Arduino.h>
 #include <string>
+#include <Entropy.h>
 
 //Pin definitions
 #define WAKEUP 30
 #define INT 34
 #define PDN 35
 #define BT_SERIAL Serial1
+#define USB_SERIAL Serial
 
 //Globals
 char BUFFER[256];
 
 //Function Declarations
-int BTinit();
+bool BTinit();
 void getName(char *);
 void wakeBT();
 bool isOK(char *);
-int rollLeaderNumber();
+char rollLeaderNumber();
+void buildName(char *);
 
 //Function Implementations
-int BTinit(){
+bool BTinit(){
     BT_SERIAL.begin(115200);
+    Entropy.Initialize();
     //Setup BT Pins
     pinMode(WAKEUP, OUTPUT);
     pinMode(PDN, OUTPUT);
@@ -28,29 +32,39 @@ int BTinit(){
     //Exit Sleep Mode
     digitalWrite(PDN, HIGH);
     digitalWrite(PDN, LOW);
-    delay(1);
+    delay(2);
 
     wakeBT();
-    //char* nameBuffer[24];
-    //char leaderNumber = (char)rollLeaderNumber();
-    //char trailingChars[] = "\r\n\0";
-    //char renameCommand[] = "TTM:REN-TellusBot-";
+    char name[25];
+    buildName(name);
+    USB_SERIAL.println(name);
 
-    //Assign A name to the module. 
-    char renameCommand[] = "TTM:REN-TellusBot-654\r\n\0";
     if(BT_SERIAL.availableForWrite()){
-        for (int i = 0; i < sizeof(renameCommand); i++){
-            BT_SERIAL.write(renameCommand[i]);
+        for (int i = 0; i < sizeof(name)-1; i++){
+            BT_SERIAL.write(name[i]);
+            if(name[i]=='\0'){
+                break;
+            }
         }
     }
 
-    delay(10);
+    delay(100);
     int i = 0;
     // Write the incoming characters to the Buffer
     while(BT_SERIAL.available()){
         BUFFER[i] = (char)BT_SERIAL.read();
+        if(BUFFER[i]=='\0'){
+            break;
+        }
         i++;
-    } 
+    }
+    delay(10);
+    i = 0;
+    while(BT_SERIAL.available()){
+        BUFFER[i] = (char)BT_SERIAL.read();
+        i++;
+    }
+    USB_SERIAL.println(BUFFER);
     return isOK(BUFFER);
 }
 
@@ -75,7 +89,7 @@ void wakeBT(){
     //Wake up the module by sending a falling edge
     digitalWrite(WAKEUP, HIGH);
     digitalWrite(WAKEUP, LOW);
-    delay(1);
+    delay(2);
 }
 
 bool isOK(char * btResponse) {
@@ -89,9 +103,36 @@ bool isOK(char * btResponse) {
     return (result != NULL); 
 }
 
-int rollLeaderNumber(){
+char rollLeaderNumber(){
     //Randomly roll a leader number based off of a random seed
-    //Sampeled from an unconnected ADC pin.
-    randomSeed(analogRead(7));
-    return random(0,255);
+    //Sampled from an unconnected ADC pin.
+    return (char)Entropy.random(0,99);
+}
+
+void buildName(char * inputArray) {
+    char trailingChars[] = "\r\n\0";
+    char renamePrefix[] = "TTM:REN-TellusBot-";
+    int counter = 0;
+    int j = 0;
+
+    for (int i = 0; i < sizeof(renamePrefix)-1; i++){
+        inputArray[i] = renamePrefix[i];
+        counter++;
+    }
+
+    char randomNumber[4];
+    sprintf(randomNumber, "%d", rollLeaderNumber());
+    j = 0;
+    for (int i = counter; i< (counter + sizeof(randomNumber)-1); i++){
+        if(randomNumber[j] == '\0'){
+            break;
+        }
+        inputArray[i] = randomNumber[j];
+        j++;
+        counter++;
+    }
+    inputArray[counter] = '\r';
+    inputArray[counter + 1] = '\n';
+    inputArray[counter + 2] = '\0';
+
 }
