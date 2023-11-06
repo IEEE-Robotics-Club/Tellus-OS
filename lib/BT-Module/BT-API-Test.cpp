@@ -16,12 +16,17 @@ bool rx_flag = false;
 
 void loop()
 {
+    // If the BT_SERIAL is available, there is a message to read
+    // Read the message into the buffer
     while(BT_SERIAL.available()){
         api_buffer[buffer_index] = (char)BT_SERIAL.read();
         buffer_index++;
         rx_flag = true;
     } 
 
+    // If we read a message into the buffer, we need to process it
+    // At the moment the api controller just takes one character as an input
+    // This can be improved later. 
     if (rx_flag){
         for (int i = 0; i < buffer_index; i++){
             if (api_buffer[i] != '\n'){
@@ -58,5 +63,6 @@ void api_controller(char input){
             break;
         default:
             //Do nothing
+            USB_SERIAL.println("Invalid Command");
     }
 }
