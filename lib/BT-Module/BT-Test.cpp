@@ -2,6 +2,7 @@
 #include <BT4502.cpp>
 #define USB_SERIAL Serial
 
+
 void setup() {
   // initialize both serial ports:
   USB_SERIAL.begin(9600);
